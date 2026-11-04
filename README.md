@@ -33,12 +33,22 @@
 ```bash
 git clone git@github.com:bear2u/KakaoBannerHider.git
 cd KakaoBannerHider
-./build.sh          # 빌드 → KakaoBannerHider.app
-./install.sh        # /Applications 로 복사 + 실행
+./install.sh        # 빌드 → /Applications 설치 → Launchpad 등록 → 실행
 ```
+
+`install.sh`가 빌드부터 설치·등록·실행까지 한 번에 합니다. /Applications에 복사되므로
+Launchpad(응용 프로그램)에서 `KakaoBannerHider`를 클릭해 실행할 수 있습니다.
+
+| 명령 | 동작 |
+|---|---|
+| `./install.sh` | 빌드 + 설치 + 등록 + 실행 |
+| `./install.sh --no-build` | 이미 빌드된 앱만 설치 (코드 해시가 유지돼 권한 재승인 불필요) |
+| `./install.sh --no-launch` | 설치만 |
+| `./install.sh --uninstall` | 앱 + 설정 제거 |
 
 처음 실행하면 손쉬운 사용 권한을 물어봅니다.
 **시스템 설정 → 개인정보 보호 및 보안 → 손쉬운 사용**에서 허용해 주세요.
+(새로 빌드하면 앱 코드 해시가 바뀌므로 권한을 한 번 다시 허용해야 합니다.)
 
 ## 사용
 
@@ -97,8 +107,12 @@ cd KakaoBannerHider
 
 ## 제거
 
-- 메뉴 → **종료**로 덮개를 없애고, `KakaoBannerHider.app`을 휴지통으로 옮깁니다.
-- 설정까지 지우려면 `~/Library/Preferences/io.github.bear2u.kakaobannerhider.plist` 삭제.
+```bash
+./install.sh --uninstall      # 앱 + 설정 + 등록 정보 제거
+```
+
+수동으로 지우려면 메뉴 → **종료** 후 `KakaoBannerHider.app`을 휴지통으로 옮기고,
+`~/Library/Preferences/io.github.bear2u.kakaobannerhider.plist`를 삭제하면 됩니다.
 
 ## 라이선스
 
