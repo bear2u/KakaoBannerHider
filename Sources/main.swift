@@ -183,28 +183,28 @@ private final class UsageView: NSView {
             return
         }
 
-        // 게이지
+        // 게이지 — 쓴 만큼 채운다
+        let used = min(100, max(0, 100 - remaining))
         let barX: CGFloat = 86, barW: CGFloat = 132, barH: CGFloat = 6
         let barRect = NSRect(x: barX, y: centerY - barH / 2, width: barW, height: barH)
         NSColor.black.withAlphaComponent(0.09).setFill()
         NSBezierPath(roundedRect: barRect, xRadius: barH / 2, yRadius: barH / 2).fill()
-        let fillW = max(barH, barW * CGFloat(min(100, max(0, remaining)) / 100))
-        NSColor.black.withAlphaComponent(0.06).setFill()
-        NSBezierPath(roundedRect: NSRect(x: barX, y: centerY - barH / 2, width: fillW, height: barH),
-                     xRadius: barH / 2, yRadius: barH / 2).fill()
-        accent(for: remaining).setFill()
-        NSBezierPath(roundedRect: NSRect(x: barX, y: centerY - barH / 2, width: fillW, height: barH),
-                     xRadius: barH / 2, yRadius: barH / 2).fill()
+        if used > 0.5 {
+            let fillW = barW * CGFloat(used / 100)
+            accent(for: remaining).setFill()
+            NSBezierPath(roundedRect: NSRect(x: barX, y: centerY - barH / 2, width: fillW, height: barH),
+                         xRadius: barH / 2, yRadius: barH / 2).fill()
+        }
 
-        // 퍼센트
-        let pctText = String(format: "%.0f%%", remaining)
+        // 퍼센트 — 사용한 비율
+        let pctText = String(format: "%.0f%%", used)
         let pct = NSAttributedString(string: pctText, attributes: [
             .font: pctFont,
             .foregroundColor: NSColor.black.withAlphaComponent(0.78)
         ])
         let pctX: CGFloat = 228
         pct.draw(at: NSPoint(x: pctX, y: centerY - pct.size().height / 2))
-        let unit = NSAttributedString(string: " 남음", attributes: [
+        let unit = NSAttributedString(string: " 사용", attributes: [
             .font: unitFont,
             .foregroundColor: NSColor.black.withAlphaComponent(0.38)
         ])
@@ -213,7 +213,7 @@ private final class UsageView: NSView {
         // 오른쪽: 창 이름 + 리셋 시각 (+ 두 번째 창)
         var detail = "\(primary.label) \(resetText(primary.resetAt))"
         if let second = provider.secondary, let rest = second.remaining {
-            detail += String(format: " · %@ %.0f%%", second.label, rest)
+            detail += String(format: " · %@ %.0f%%", second.label, 100 - rest)
         }
         let detailString = NSAttributedString(string: detail, attributes: [
             .font: detailFont,
@@ -402,7 +402,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let modeItem = NSMenuItem(title: "가린 자리에 표시", action: nil, keyEquivalent: "")
         let sub = NSMenu()
-        for (m, title) in [(DisplayMode.usage, "Codex · Claude 남은 한도"),
+        for (m, title) in [(DisplayMode.usage, "Codex · Claude 한도 사용량"),
                            (.blank, "아무것도 없이 (빈 공간)"),
                            (.clock, "시계"),
                            (.text, "내 문구")] {
