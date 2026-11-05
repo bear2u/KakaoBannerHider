@@ -142,15 +142,39 @@ private final class UsageView: NSView {
     private let unitFont = NSFont.systemFont(ofSize: 10, weight: .regular)
     private let detailFont = NSFont.monospacedDigitSystemFont(ofSize: 10.5, weight: .regular)
 
+    private struct Row {
+        let title: String
+        let indent: CGFloat
+        let window: UsageWindow?
+        let error: String?
+        let isSub: Bool
+    }
+
     override func draw(_ dirtyRect: NSRect) {
-        let rows = payload?.providers?.prefix(2).map { $0 } ?? []
-        if rows.isEmpty {
+        let providers = payload?.providers ?? []
+        if providers.isEmpty {
             drawCentered(loading ? "한도 정보를 불러오는 중…" : "한도 정보를 읽지 못했습니다")
             return
         }
+
+        // 공급자마다 한 줄, 두 번째 창(주간 등)은 한 줄 더
+        var rows: [Row] = []
+        for provider in providers {
+            guard provider.ok, let primary = provider.primary else {
+                rows.append(Row(title: provider.label, indent: 16, window: nil,
+                                error: provider.error ?? "정보 없음", isSub: false))
+                continue
+            }
+            rows.append(Row(title: provider.label, indent: 16, window: primary, error: nil, isSub: false))
+            if let second = provider.secondary {
+                rows.append(Row(title: second.label, indent: 30, window: second, error: nil, isSub: true))
+            }
+        }
+        rows = Array(rows.prefix(4))
+
         let rowHeight = bounds.height / CGFloat(rows.count)
-        for (i, provider) in rows.enumerated() {
-            draw(provider: provider, centerY: rowHeight * (CGFloat(i) + 0.5))
+        for (i, row) in rows.enumerated() {
+            draw(row, centerY: rowHeight * (CGFloat(i) + 0.5))
         }
     }
 
@@ -164,20 +188,20 @@ private final class UsageView: NSView {
         s.draw(at: NSPoint(x: (bounds.width - size.width) / 2, y: (bounds.height - size.height) / 2))
     }
 
-    private func draw(provider: UsageProvider, centerY: CGFloat) {
-        let nameAttrs: [NSAttributedString.Key: Any] = [
-            .font: nameFont,
-            .foregroundColor: NSColor.black.withAlphaComponent(provider.ok ? 0.62 : 0.3)
+    private func draw(_ row: Row, centerY: CGFloat) {
+        let titleAttrs: [NSAttributedString.Key: Any] = [
+            .font: row.isSub ? NSFont.systemFont(ofSize: 11, weight: .regular) : nameFont,
+            .foregroundColor: NSColor.black.withAlphaComponent(row.isSub ? 0.45 : 0.62)
         ]
-        let name = NSAttributedString(string: provider.label, attributes: nameAttrs)
-        name.draw(at: NSPoint(x: 16, y: centerY - name.size().height / 2))
+        let title = NSAttributedString(string: row.title, attributes: titleAttrs)
+        title.draw(at: NSPoint(x: row.indent, y: centerY - title.size().height / 2))
 
-        guard provider.ok, let primary = provider.primary, let remaining = primary.remaining else {
+        guard let window = row.window, let remaining = window.remaining else {
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: NSFont.systemFont(ofSize: 10.5),
                 .foregroundColor: NSColor.systemRed.withAlphaComponent(0.7)
             ]
-            let detail = NSAttributedString(string: provider.error ?? "정보 없음", attributes: attrs)
+            let detail = NSAttributedString(string: row.error ?? "정보 없음", attributes: attrs)
             let size = detail.size()
             detail.draw(at: NSPoint(x: bounds.width - 16 - size.width, y: centerY - size.height / 2))
             return
@@ -185,7 +209,7 @@ private final class UsageView: NSView {
 
         // 게이지 — 쓴 만큼 채운다
         let used = min(100, max(0, 100 - remaining))
-        let barX: CGFloat = 86, barW: CGFloat = 132, barH: CGFloat = 6
+        let barX: CGFloat = 86, barW: CGFloat = 132, barH: CGFloat = 5.5
         let barRect = NSRect(x: barX, y: centerY - barH / 2, width: barW, height: barH)
         NSColor.black.withAlphaComponent(0.09).setFill()
         NSBezierPath(roundedRect: barRect, xRadius: barH / 2, yRadius: barH / 2).fill()
@@ -210,11 +234,10 @@ private final class UsageView: NSView {
         ])
         unit.draw(at: NSPoint(x: pctX + pct.size().width, y: centerY - unit.size().height / 2 + 1))
 
-        // 오른쪽: 창 이름 + 리셋 시각 (+ 두 번째 창)
-        var detail = "\(primary.label) \(resetText(primary.resetAt))"
-        if let second = provider.secondary, let rest = second.remaining {
-            detail += String(format: " · %@ %.0f%%", second.label, 100 - rest)
-        }
+        // 오른쪽: 리셋 시각 (하위 줄은 시각만)
+        let detail = row.isSub
+            ? resetText(window.resetAt)
+            : "\(window.label) \(resetText(window.resetAt))"
         let detailString = NSAttributedString(string: detail, attributes: [
             .font: detailFont,
             .foregroundColor: NSColor.black.withAlphaComponent(0.42)
