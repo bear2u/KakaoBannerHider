@@ -56,7 +56,13 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
-echo "==> 애드혹 서명"
-codesign --force --sign - --identifier "io.github.bear2u.kakaobannerhider" "$APP" >/dev/null 2>&1 || true
+# SIGN_IDENTITY 를 주면 그 인증서로 서명한다(재빌드해도 손쉬운 사용 권한이 유지됨).
+# 비워 두면 애드혹 서명이라 빌드할 때마다 권한을 다시 허용해야 한다.
+IDENTITY="${SIGN_IDENTITY:--}"
+echo "==> 서명 ($IDENTITY)"
+codesign --force --sign "$IDENTITY" --identifier "io.github.bear2u.kakaobannerhider" "$APP" >/dev/null 2>&1 || {
+  echo "   서명 실패 — 애드혹으로 대체" >&2
+  codesign --force --sign - --identifier "io.github.bear2u.kakaobannerhider" "$APP" >/dev/null 2>&1 || true
+}
 
 echo "==> 완료: $APP"

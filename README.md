@@ -104,6 +104,16 @@ KakaoBannerHider/
 └── LICENSE
 ```
 
+### 서명 고정 (선택)
+
+애드혹 서명은 빌드할 때마다 코드 해시가 바뀌어 손쉬운 사용 권한이 초기화됩니다.
+키체인에 코드 서명 인증서가 있다면 그 인증서로 서명해 권한을 유지할 수 있습니다.
+
+```bash
+SIGN_IDENTITY="Apple Development: 이름 (TEAMID)" ./build.sh
+SIGN_IDENTITY="Apple Development: 이름 (TEAMID)" ./install.sh
+```
+
 ## 개발 메모
 
 - 외부 의존성 없음. AppKit + ApplicationServices 만 씁니다. (Swift 단일 파일)
